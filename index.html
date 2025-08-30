@@ -80,7 +80,7 @@
             color: white;
             border: none;
             cursor: pointer;
-            z-index: 1001;
+            z-index: 1003;
             box-shadow: 0 4px 12px var(--shadow-color);
             transition: background-color 0.2s ease, transform 0.2s ease;
             display: flex;
@@ -223,7 +223,7 @@
         }
 
         .control-item select, .button-group button, .toggle-button,
-        .interaction-form select, .interaction-form input {
+        #addInteractionContainer button, .single-button input[type=number] {
             background: var(--bg-tertiary);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
@@ -234,9 +234,10 @@
             width: 100%;
             text-align: center;
             font-size: 0.9em;
+            box-sizing: border-box;
         }
         .control-item select:hover, .button-group button:hover, .toggle-button:hover,
-        .interaction-form select:hover, .interaction-form input:hover {
+        #addInteractionContainer button:hover, .single-button input[type=number]:hover {
             background-color: var(--accent);
             border-color: var(--accent);
             color: white;
@@ -244,6 +245,20 @@
         .button-group { display: flex; gap: 8px; }
         .toggle-button.active { background: var(--accent); border-color: var(--accent); color: white; }
         .toggle-button.active:hover { background: var(--accent-hover); }
+        
+        /* New style for the Add Interaction button container */
+        .control-item.full-width-action {
+            display: block;
+            padding-top: 10px;
+            padding-bottom: 5px;
+        }
+        /* New style to make the button more prominent */
+        #addInteractionBtn {
+            font-weight: 600;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+
 
         /* Custom Slider Styles */
         input[type=range] { -webkit-appearance: none; background: transparent; }
@@ -265,7 +280,6 @@
         
         /* Food Web Styles */
         #addInteractionContainer { padding: 0 15px; }
-        .interaction-form-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin: 10px 0; font-size: 0.9em;}
         #interactionsList { list-style: none; padding: 0; margin: 10px 0 0 0; font-size: 0.9em; max-height: 150px; overflow-y: auto;}
         #interactionsList li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--bg-tertiary); }
         #interactionsList li:last-child { border-bottom: none; }
@@ -283,6 +297,53 @@
             fill: none;
         }
         .graph-text { font-size: 10px; fill: var(--text-primary); text-anchor: middle; paint-order: stroke; stroke: var(--bg-primary); stroke-width: 3px; stroke-linecap: butt; stroke-linejoin: miter; font-weight: bold; pointer-events: none; }
+        
+        /* Population Graph Styles */
+        #populationGraphContainer {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 350px;
+            height: 220px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px var(--shadow-color);
+            z-index: 1002;
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+        }
+        #populationGraphContainer.visible {
+            display: flex;
+        }
+        #populationGraphContainer p {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            text-align: center;
+            margin: 0 0 10px 0;
+        }
+        #populationGraph {
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+        }
+        #closeGraphBtn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        #closeGraphBtn:hover {
+            color: var(--text-primary);
+        }
+
 
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
@@ -297,6 +358,12 @@
             .controls-header { cursor: grab; }
             .controls-header:active { cursor: grabbing; }
             #menuToggle { display: flex; }
+            #populationGraphContainer {
+                bottom: 85px;
+                right: 15px;
+                width: calc(100vw - 30px);
+                max-width: 350px;
+            }
         }
         @media (min-width: 769px) {
             #menuToggle { display: none; }
@@ -333,7 +400,7 @@
                 <div class="control-item">
                     <label>Number of Boids</label>
                     <div class="input-group">
-                        <input type="range" id="numBoids" min="1" max="500" step="1" value="150"><input type="number" id="numBoidsValue" class="slider-value" value="150">
+                        <input type="range" id="numBoids" min="1" max="4000" step="1" value="1000"><input type="number" id="numBoidsValue" class="slider-value" value="1000">
                     </div>
                 </div>
                 <div class="control-item">
@@ -343,6 +410,7 @@
                     </div>
                 </div>
                 <div id="speciesProportionsContainer"></div>
+                <div id="speciesGrowthContainer"></div>
             </details>
             <details>
                  <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>Food Web</summary>
@@ -357,12 +425,11 @@
                     </div>
                      <div class="control-item">
                          <label>Strength</label>
-                         <div class="input-group">
-                            <input type="number" id="interactionStrength" class="slider-value" value="1.0" min="0.1" step="0.1" style="width: 100%; margin-left: 0;">
+                         <div class="single-button">
+                            <input type="number" id="interactionStrength" value="1.0" min="0.1" step="0.1">
                          </div>
                      </div>
-                     <div class="control-item" style="padding-top:0;">
-                         <label></label>
+                     <div class="control-item full-width-action">
                          <div class="single-button">
                              <button id="addInteractionBtn">Add Interaction</button>
                          </div>
@@ -401,6 +468,12 @@
                 <div class="control-item"><label>Boundary Type</label><div class="single-button"><select id="boundaryType"><option value="walls">Walls</option><option value="periodic" selected>Periodic</option></select></div></div>
                 <div class="control-item"><label>Show Boundaries</label><div class="single-button"><button id="showBoundariesToggle" class="toggle-button">Show</button></div></div>
                 <div class="control-item"><label>Render Distance</label><div class="input-group"><input type="range" id="renderDistance" min="400" max="5000" step="10" value="2000"><input type="number" id="renderDistanceValue" class="slider-value" value="2000"></div></div>
+                <div class="control-item">
+                    <label>Population Graph</label>
+                    <div class="single-button">
+                        <button id="showPopulationGraphToggle" class="toggle-button">Show</button>
+                    </div>
+                </div>
             </details>
              <details>
                 <summary><svg viewBox="0 0 24 24"><path d="M3 12h2l2.5-4 3 8 2.5-6 2 4h2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>Trails</summary>
@@ -410,6 +483,12 @@
         </div>
     </div>
     
+    <div id="populationGraphContainer">
+        <button id="closeGraphBtn">&times;</button>
+        <p>Live Population Chart</p>
+        <canvas id="populationGraph"></canvas>
+    </div>
+
     <input type="color" id="colorPicker" style="display: none;">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -420,7 +499,7 @@
         let scene, camera, renderer, controls, clock;
         let boids = [];
         let worldSize = 400;
-        const MAX_BOIDS = 500;
+        const MAX_BOIDS = 4000;
 
         // --- Helper Objects ---
         let boundaryHelper, spatialGrid;
@@ -430,14 +509,24 @@
         let instancedMesh;
         let speciesParams = [];
         let interactions = [];
+        let speciesGrowthAccumulators = [];
+        const EAT_DISTANCE = 5;
+        const FADE_RATE = 0.02;
         
         // --- Food Web Graph Variables ---
         let graphNodes = [], graphLinks = [], graphAnimationId = null;
         let draggedNode = null;
+        
+        // --- Population Graph Variables ---
+        let populationHistory = [];
+        const MAX_HISTORY_LENGTH = 300; // ~5 minutes of data at 1s interval
+        let graphUpdateTimer = null;
+        let recordHistoryTimer = null;
+
 
         // Global/default parameters object
         const params = {
-            numBoids: 150, numSpecies: 3, maxSpeed: 3, maxForce: 0.05,
+            numBoids: 1000, numSpecies: 3, maxSpeed: 3, maxForce: 0.05,
             perceptionRadius: 50, separationDistance: 25, alignmentWeight: 1.0,
             cohesionWeight: 1.0, separationWeight: 1.5, boundaryType: 'periodic',
             boidAppearance: 'cones', mode: 'dark', trailsEnabled: true,
@@ -465,13 +554,18 @@
         function createFlockingParams() {
             const p = {};
             flockingParamKeys.forEach(key => p[key] = params[key]);
+            p.growthRate = 0.005; // Default growth rate
             return p;
         }
 
         function initSpeciesParams() {
+            const oldParams = [...speciesParams];
             speciesParams = [];
+            speciesGrowthAccumulators = [];
             for (let i = 0; i < params.numSpecies; i++) {
-                speciesParams.push(createFlockingParams());
+                const existingParams = oldParams[i] ? oldParams[i] : createFlockingParams();
+                speciesParams.push(existingParams);
+                speciesGrowthAccumulators.push(0);
             }
         }
 
@@ -560,6 +654,9 @@
                 this.velocity.setLength(Math.random() * 2 + 1);
                 this.acceleration = new THREE.Vector3();
                 this.trail = null;
+                this.target = null;
+                this.isAlive = true;
+                this.opacity = 1.0;
                 if(params.trailsEnabled) this.createTrail(params.trailLength);
             }
 
@@ -609,7 +706,7 @@
 
                 for (let other of neighbors) {
                     let d = this.position.distanceTo(other.position);
-                    if (other !== this && d > 0) { // Perception radius check is now done before calling flock
+                    if (other !== this && d > 0 && other.isAlive) { // Perception radius check is now done before calling flock
                         if (d < flockParams.separationDistance) {
                            let diff = new THREE.Vector3().subVectors(this.position, other.position);
                            diff.divideScalar(d * d); 
@@ -697,7 +794,7 @@
         function getSpeciesIdByProportion() {
             let cumulativeProportion = 0;
             const proportions = speciesProportions.map(p => cumulativeProportion += p);
-            const totalProportion = proportions[proportions.length - 1] || 1;
+                const totalProportion = proportions[proportions.length - 1] || 1;
             if (totalProportion <= 0) { return Math.floor(Math.random() * params.numSpecies); }
             const rand = Math.random() * totalProportion;
             for(let j=0; j<proportions.length; j++) {
@@ -797,8 +894,67 @@
                 controlItem.appendChild(div);
                 container.appendChild(controlItem);
             }
+            updateGrowthRateSliders();
         }
         
+        function updateGrowthRateSliders() {
+            const container = document.getElementById('speciesGrowthContainer');
+            container.innerHTML = '';
+            
+            const header = document.createElement('p');
+            header.textContent = "Endemic Growth Rates";
+            header.style.fontSize = '0.9em';
+            header.style.color = 'var(--text-secondary)';
+            header.style.textAlign = 'center';
+            header.style.padding = '5px 15px 0';
+            header.style.margin = '10px 0 5px 0';
+            header.style.borderTop = '1px solid var(--border-color)';
+            container.appendChild(header);
+
+            for (let i = 0; i < params.numSpecies; i++) {
+                if (!speciesParams[i]) continue;
+                const controlItem = document.createElement('div');
+                controlItem.className = 'control-item';
+                const label = document.createElement('label');
+                label.textContent = `Species ${i + 1}`;
+
+                const div = document.createElement('div');
+                div.className = 'input-group';
+                const slider = document.createElement('input');
+                slider.type = 'range'; slider.min = 0; slider.max = 0.05; slider.step = 0.0001;
+                slider.value = speciesParams[i].growthRate; slider.dataset.speciesId = i;
+                const valueInput = document.createElement('input');
+                valueInput.type = 'number'; valueInput.className = 'slider-value';
+                valueInput.value = speciesParams[i].growthRate.toFixed(4); 
+                valueInput.step = 0.0001; valueInput.min = 0;
+
+                const handleInput = (newValue) => {
+                    if(speciesParams[i]) {
+                        speciesParams[i].growthRate = newValue;
+                    }
+                };
+                
+                slider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    valueInput.value = value.toFixed(4);
+                    handleInput(value);
+                });
+                valueInput.addEventListener('change', (e) => {
+                    let value = parseFloat(e.target.value);
+                    if(isNaN(value)) value = 0;
+                    value = Math.max(0, Math.min(0.05, value));
+                    slider.value = value;
+                    e.target.value = value.toFixed(4);
+                    handleInput(value);
+                });
+
+                controlItem.appendChild(label);
+                div.appendChild(slider); div.appendChild(valueInput);
+                controlItem.appendChild(div);
+                container.appendChild(controlItem);
+            }
+        }
+
         function setBoidCount(newCount) {
             const currentCount = boids.length;
             params.numBoids = newCount;
@@ -815,6 +971,7 @@
             updateParamsFromUI();
             initSpeciesParams();
             interactions = [];
+            populationHistory = []; // Clear graph history
             updateFoodWebUI();
             boids.forEach(boid => boid.removeTrail());
             boids = [];
@@ -939,6 +1096,102 @@
             });
         }
         
+        // --- POPULATION DYNAMICS ---
+        function assignTargets() {
+            const speciesLists = Array.from({ length: params.numSpecies }, () => []);
+            boids.forEach(b => {
+                if (b.isAlive) {
+                    speciesLists[b.speciesId].push(b);
+                }
+            });
+
+            boids.forEach(boid => {
+                // If this boid is a predator and needs a new target
+                if (boid.isAlive && (!boid.target || !boid.target.isAlive)) {
+                    const preySpeciesIds = interactions
+                        .filter(i => i.predatorId === boid.speciesId)
+                        .map(i => i.preyId);
+                    
+                    if (preySpeciesIds.length > 0) {
+                        const potentialPrey = preySpeciesIds.flatMap(id => speciesLists[id]);
+                        if (potentialPrey.length > 0) {
+                            boid.target = potentialPrey[Math.floor(Math.random() * potentialPrey.length)];
+                        } else {
+                            boid.target = null; // No available prey
+                        }
+                    } else {
+                        boid.target = null; // Not a predator
+                    }
+                }
+            });
+        }
+        
+        function updatePopulations() {
+            if (isPaused) return;
+
+            const boidCounts = new Array(params.numSpecies).fill(0);
+            boids.forEach(b => { if (b.isAlive) boidCounts[b.speciesId]++; });
+
+            const totalTargetProportion = speciesProportions.reduce((a, b) => a + b, 0) || 1;
+
+            for (let i = 0; i < params.numSpecies; i++) {
+                if (boidCounts[i] >= 2 && speciesParams[i]) {
+                    const growthRate = speciesParams[i].growthRate;
+                    const carryingCapacity = (speciesProportions[i] / totalTargetProportion) * params.numBoids;
+
+                    if (growthRate > 0 && boidCounts[i] < carryingCapacity) {
+                        const potentialGrowth = boidCounts[i] * growthRate;
+                        speciesGrowthAccumulators[i] += potentialGrowth;
+
+                        const numToSpawn = Math.floor(speciesGrowthAccumulators[i]);
+                        if (numToSpawn > 0 && (boids.length + numToSpawn) <= MAX_BOIDS) {
+                            for(let j = 0; j < numToSpawn; j++) {
+                                boids.push(new Boid(null, i));
+                            }
+                            speciesGrowthAccumulators[i] -= numToSpawn;
+                        }
+                    }
+                }
+            }
+        }
+        
+        function applyFoodWebForces(boid, neighbors) {
+            if (!boid.isAlive) return;
+
+            const boidSpeciesId = boid.speciesId;
+            const currentParams = speciesParams[boidSpeciesId];
+            let fleeForce = new THREE.Vector3();
+            let predatorsFound = 0;
+
+            // Fleeing logic
+            for (const other of neighbors) {
+                if (!other.isAlive) continue;
+                if (interactions.some(i => i.predatorId === other.speciesId && i.preyId === boidSpeciesId)) {
+                    let diff = new THREE.Vector3().subVectors(boid.position, other.position);
+                    fleeForce.add(diff);
+                    predatorsFound++;
+                }
+            }
+
+            if (predatorsFound > 0) {
+                fleeForce.divideScalar(predatorsFound);
+                fleeForce.setLength(currentParams.maxSpeed);
+                fleeForce.sub(boid.velocity);
+                fleeForce.clampLength(0, currentParams.maxForce);
+                boid.acceleration.add(fleeForce.multiplyScalar(5.0)); // Flee has high priority
+                return; // If fleeing, don't hunt
+            }
+
+            // Hunting logic
+            if (boid.target && boid.target.isAlive) {
+                let desired = new THREE.Vector3().subVectors(boid.target.position, boid.position);
+                desired.setLength(currentParams.maxSpeed);
+                let steer = new THREE.Vector3().subVectors(desired, boid.velocity);
+                steer.clampLength(0, currentParams.maxForce);
+                boid.acceleration.add(steer.multiplyScalar(2.0)); // Hunt has medium priority
+            }
+        }
+
         // --- FORCE DIRECTED GRAPH LOGIC ---
         function updateFoodWebGraph() {
             const svg = document.getElementById('foodWebGraph');
@@ -1142,6 +1395,79 @@
             svg.addEventListener('mouseleave', () => { draggedNode = null; });
         }
 
+        function recordPopulationHistory() {
+            if (isPaused) return;
+            const boidCounts = new Array(params.numSpecies).fill(0);
+            boids.forEach(b => {
+                if (b.isAlive) boidCounts[b.speciesId]++;
+            });
+            
+            populationHistory.push(boidCounts);
+            if (populationHistory.length > MAX_HISTORY_LENGTH) {
+                populationHistory.shift();
+            }
+        }
+    
+        function drawPopulationGraph() {
+            const container = document.getElementById('populationGraphContainer');
+            if (!container || !container.classList.contains('visible') || populationHistory.length < 2) return;
+            
+            const canvas = document.getElementById('populationGraph');
+            const ctx = canvas.getContext('2d');
+            const { width, height } = canvas.getBoundingClientRect();
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.clearRect(0, 0, width, height);
+            
+            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
+
+            let maxPop = 0;
+            populationHistory.forEach(counts => {
+                counts.forEach(c => {
+                    if (c > maxPop) maxPop = c;
+                });
+            });
+            if (maxPop === 0) maxPop = 10;
+            maxPop = Math.ceil(maxPop * 1.1);
+            
+            ctx.fillStyle = textColor;
+            ctx.font = '10px -apple-system, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i <= 4; i++) {
+                const y = height - (i/4 * height);
+                const label = Math.round(i/4 * maxPop);
+                ctx.fillText(label, 25, y);
+            }
+            
+            const xStep = (width - 30) / (MAX_HISTORY_LENGTH - 1);
+            const color = new THREE.Color();
+            ctx.lineWidth = 1.5;
+
+            for (let speciesId = 0; speciesId < params.numSpecies; speciesId++) {
+                const baseColor = speciesPalette[speciesId % speciesPalette.length];
+                color.setHSL(baseColor.h, baseColor.s, baseColor.l);
+                ctx.strokeStyle = color.getStyle();
+
+                ctx.beginPath();
+                let firstPoint = true;
+                for (let i = 0; i < populationHistory.length; i++) {
+                    const count = populationHistory[i][speciesId] || 0;
+                    const x = 30 + i * xStep;
+                    const y = height - (count / maxPop) * height;
+
+                    if (firstPoint) {
+                        ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
 
         function setupControls() {
             // Non-flocking sliders
@@ -1225,8 +1551,8 @@
             document.getElementById('numSpecies').addEventListener('change', () => {
                 params.numSpecies = parseInt(document.getElementById('numSpecies').value, 10);
                 interactions = interactions.filter(i => i.predatorId < params.numSpecies && i.preyId < params.numSpecies);
-                updateProportionSliders();
                 initSpeciesParams();
+                updateProportionSliders();
                 updateSpeciesControlDropdown();
                 updateFlockingUI();
                 updateFoodWebUI();
@@ -1275,6 +1601,33 @@
                 menuIconOpen.style.display = isOpen ? 'none' : 'block';
                 menuIconClose.style.display = isOpen ? 'block' : 'none';
             });
+            
+            // Population Graph controls
+            const showGraphToggle = document.getElementById('showPopulationGraphToggle');
+            const graphContainer = document.getElementById('populationGraphContainer');
+            const closeGraphBtn = document.getElementById('closeGraphBtn');
+
+            const toggleGraph = () => {
+                const isVisible = graphContainer.classList.toggle('visible');
+                showGraphToggle.classList.toggle('active', isVisible);
+                showGraphToggle.textContent = isVisible ? 'Hide' : 'Show';
+                if (isVisible) {
+                    if (!graphUpdateTimer) {
+                        graphUpdateTimer = setInterval(drawPopulationGraph, 100);
+                    }
+                } else {
+                    if (graphUpdateTimer) {
+                        clearInterval(graphUpdateTimer);
+                        graphUpdateTimer = null;
+                    }
+                }
+            };
+
+            showGraphToggle.addEventListener('click', toggleGraph);
+            closeGraphBtn.addEventListener('click', toggleGraph);
+
+            // Make graph visible by default
+            toggleGraph();
         }
         
         function init() {
@@ -1320,6 +1673,13 @@
             updateFoodWebUI();
             resetSimulation();
             applyMode(params.mode);
+
+            setInterval(assignTargets, 3000);
+            if (recordHistoryTimer) clearInterval(recordHistoryTimer);
+            recordHistoryTimer = setInterval(() => {
+                updatePopulations();
+                recordPopulationHistory();
+            }, 1000);
             
             animate();
         }
@@ -1329,35 +1689,72 @@
             controls.update();
             if(!isPaused) {
                 spatialGrid.clear();
-                boids.forEach(boid => spatialGrid.insert(boid));
                 boids.forEach(boid => {
+                    if(boid.isAlive) spatialGrid.insert(boid)
+                });
+
+                boids.forEach(boid => {
+                    if (!boid.isAlive) return;
+
                     const currentParams = speciesParams[boid.speciesId] || params;
                     const neighbors = spatialGrid.query(boid.position, currentParams.perceptionRadius);
+                    
                     boid.flock(neighbors, currentParams);
+                    applyFoodWebForces(boid, neighbors);
+
                     boid.update();
                     boid.boundaries();
                     boid.updateTrail();
                 });
 
+                // Predation check
+                boids.forEach(boid => {
+                    if (boid.isAlive && boid.target && boid.target.isAlive) {
+                        if (boid.position.distanceTo(boid.target.position) < EAT_DISTANCE) {
+                            boid.target.isAlive = false; // "Eat" the prey
+                            boid.target = null; // Look for a new target
+                        }
+                    }
+                });
+
+
                 const dummy = new THREE.Object3D();
                 const color = new THREE.Color();
+                let liveBoidsCount = 0;
                 for (let i = 0; i < boids.length; i++) {
                     const boid = boids[i];
+                    
+                    if (!boid.isAlive) {
+                        boid.opacity -= FADE_RATE;
+                        boid.removeTrail();
+                    }
+
+                    if (boid.opacity <= 0) continue;
+
                     dummy.position.copy(boid.position);
                     if (boid.velocity.lengthSq() > 0.001) {
                         dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), boid.velocity.clone().normalize());
                     }
                     if(params.boidAppearance === 'birds') dummy.scale.set(0.8, 0.8, 0.8);
                     else dummy.scale.set(1, 1, 1);
+                    
+                    dummy.scale.multiplyScalar(boid.opacity); // Apply fading scale
+
                     dummy.updateMatrix();
-                    instancedMesh.setMatrixAt(i, dummy.matrix);
+                    instancedMesh.setMatrixAt(liveBoidsCount, dummy.matrix);
                     const baseColor = speciesPalette[boid.speciesId % speciesPalette.length];
                     color.setHSL(baseColor.h, baseColor.s, baseColor.l);
-                    instancedMesh.setColorAt(i, color);
+                    instancedMesh.setColorAt(liveBoidsCount, color);
+                    liveBoidsCount++;
                 }
-                instancedMesh.count = boids.length;
+                instancedMesh.count = liveBoidsCount;
                 instancedMesh.instanceMatrix.needsUpdate = true;
                 if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
+                
+                // Remove dead boids from array
+                if (boids.some(b => b.opacity <= 0)) {
+                    boids = boids.filter(b => b.opacity > 0);
+                }
             }
             renderer.render(scene, camera);
         }
@@ -1401,4 +1798,3 @@
     </script>
 </body>
 </html>
-
