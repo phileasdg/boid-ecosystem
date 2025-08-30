@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Boids Simulation</title>
+    <style>
+        :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3c3c3c;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #4a90e2;
+            --accent-hover: #5aa1f2;
+            --border-color: #4a4a4a;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --info-text: #ffffff;
+            --info-shadow: rgba(0, 0, 0, 0.5);
+            --danger-color: #e24a4a;
+
+            --slider-track: #3c3c3c;
+            --slider-thumb: #a0a0a0;
+            --slider-thumb-hover: #ffffff;
+            --select-arrow: url('data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="%23a0a0a0"%3E%3Cpath d="M7 10l5 5 5-5z"/%3E%3C/svg%3E');
+        }
+
+        :root.light-mode {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f7f7f7;
+            --bg-tertiary: #ebebeb;
+            --text-primary: #1e1e1e;
+            --text-secondary: #5a5a5a;
+            --accent: #3a7dcf;
+            --accent-hover: #4a90e2;
+            --border-color: #dcdcdc;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --info-text: #000000;
+            --info-shadow: rgba(255, 255, 255, 0.3);
+            --danger-color: #d93a3a;
+
+            --slider-track: #dcdcdc;
+            --slider-thumb: #5a5a5a;
+            --slider-thumb-hover: #1e1e1e;
+            --select-arrow: url('data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="%235a5a5a"%3E%3Cpath d="M7 10l5 5 5-5z"/%3E%3C/svg%3E');
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: var(--bg-primary); 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+            color: var(--text-primary);
+            transition: background-color 0.3s ease;
+        }
+
+        canvas { display: block; }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: var(--info-text);
+            font-size: 1.2em;
+            font-weight: 500;
+            text-shadow: 0 1px 4px var(--info-shadow);
+            pointer-events: none;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        #menuToggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #menuToggle:hover {
+            background-color: var(--accent-hover);
+            transform: scale(1.05);
+        }
+        #menuToggle svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: var(--bg-primary);
+            padding: 0;
+            border-radius: 12px;
+            width: 350px;
+            border: 1px solid var(--border-color);
+            max-height: calc(100vh - 30px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 24px var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+        
+        .controls-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .controls-header h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        .controls-header p {
+            margin: 0;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+
+        .controls-body {
+            padding: 10px;
+            flex-grow: 1;
+        }
+
+        details {
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: var(--bg-secondary);
+        }
+        details[open] {
+            padding-bottom: 10px;
+        }
+        summary {
+            font-weight: 600;
+            padding: 12px 15px;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::after {
+            content: '›';
+            font-size: 1.5em;
+            margin-left: auto;
+            transform: rotate(90deg);
+            transition: transform 0.2s;
+        }
+        details[open] summary::after {
+            transform: rotate(-90deg);
+        }
+        summary svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            opacity: 0.7;
+        }
+
+        .control-item {
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-item label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+            flex: 1;
+        }
+        .control-item .input-group {
+            display: flex;
+            align-items: center;
+            flex: 1.5;
+        }
+        .control-item input[type="range"] {
+            flex-grow: 1;
+        }
+        .control-item .slider-value {
+            margin-left: 8px;
+            width: 45px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            text-align: center;
+            font-size: 0.9em;
+            padding: 4px;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+        .control-item select, .control-item .button-group, .control-item .single-button {
+            flex: 1.5;
+        }
+        
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: var(--select-arrow);
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 12px;
+            padding-right: 28px !important;
+        }
+
+        .control-item select, .button-group button, .toggle-button,
+        .interaction-form select, .interaction-form input {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        .control-item select:hover, .button-group button:hover, .toggle-button:hover,
+        .interaction-form select:hover, .interaction-form input:hover {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .button-group { display: flex; gap: 8px; }
+        .toggle-button.active { background: var(--accent); border-color: var(--accent); color: white; }
+        .toggle-button.active:hover { background: var(--accent-hover); }
+
+        /* Custom Slider Styles */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { height: 6px; cursor: pointer; background: var(--slider-track); border-radius: 5px; }
+        input[type=range]::-webkit-slider-thumb { border: 2px solid var(--bg-secondary); height: 16px; width: 16px; border-radius: 50%; background: var(--slider-thumb); cursor: pointer; -webkit-appearance: none; margin-top: -5px; transition: background-color 0.2s; }
+        input[type=range]:hover::-webkit-slider-thumb { background: var(--slider-thumb-hover); }
+
+        #speciesProportionsContainer { padding: 0 15px; }
+        #speciesProportionsContainer .control-item { padding: 8px 0; }
+        .species-color-swatch {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            margin-left: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Food Web Styles */
+        #addInteractionContainer { padding: 0 15px; }
+        .interaction-form-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin: 10px 0; font-size: 0.9em;}
+        #interactionsList { list-style: none; padding: 0; margin: 10px 0 0 0; font-size: 0.9em; max-height: 150px; overflow-y: auto;}
+        #interactionsList li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--bg-tertiary); }
+        #interactionsList li:last-child { border-bottom: none; }
+        #interactionsList button { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2em; padding: 0 5px; }
+        #interactionsList input { width: 45px; margin-left: auto; }
+
+        #foodWebGraphContainer { margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color); }
+        #foodWebGraphContainer p { font-size: 0.9em; color: var(--text-secondary); text-align: center; margin: 0 0 10px 0; }
+        #foodWebGraph { width: 100%; height: 220px; background-color: var(--bg-tertiary); border-radius: 6px; cursor: grab; }
+        #foodWebGraph:active { cursor: grabbing; }
+        .graph-node { stroke-width: 2px; stroke: var(--bg-primary); }
+        .graph-link {
+            stroke: var(--text-secondary);
+            opacity: 0.8;
+            fill: none;
+        }
+        .graph-text { font-size: 10px; fill: var(--text-primary); text-anchor: middle; paint-order: stroke; stroke: var(--bg-primary); stroke-width: 3px; stroke-linecap: butt; stroke-linejoin: miter; font-weight: bold; pointer-events: none; }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            #controls {
+                left: 0; right: 0; bottom: 0; top: auto; width: 100%;
+                border-radius: 20px 20px 0 0;
+                border-left: none; border-right: none; border-bottom: none;
+                transform: translateY(calc(100% - 60px));
+                max-height: 80vh; z-index: 1000;
+            }
+            #controls.open { transform: translateY(0); }
+            .controls-header { cursor: grab; }
+            .controls-header:active { cursor: grabbing; }
+            #menuToggle { display: flex; }
+        }
+        @media (min-width: 769px) {
+            #menuToggle { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="info">3D Boids Simulation</div>
+
+    <button id="menuToggle">
+        <svg id="menuIconOpen" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
+        <svg id="menuIconClose" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+    </button>
+    
+    <div id="controls">
+        <div class="controls-header">
+            <h2>Boids Simulation</h2>
+            <p>A 3D flocking algorithm</p>
+        </div>
+        <div class="controls-body">
+            <details>
+                <summary><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>Simulation</summary>
+                <div class="control-item">
+                    <label>Controls</label>
+                    <div class="button-group">
+                        <button id="playPauseBtn">Pause</button>
+                        <button id="resetBtn">Reset</button>
+                    </div>
+                </div>
+            </details>
+            <details open>
+                <summary><svg viewBox="0 0 24 24"><path d="M16.5 12c1.38 0 2.5-1.12 2.5-2.5s-1.12-2.5-2.5-2.5-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zM9 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm7.5 3c-1.83 0-5.5.92-5.5 2.75V19h11v-2.25c0-1.83-3.67-2.75-5.5-2.75zM9 13c-2.33 0-7 1.17-7 3.5V19h7v-2.25c0-.85.33-2.34 2.37-3.47C10.5 13.1 9.66 13 9 13z"></path></svg>Ecosystem</summary>
+                <div class="control-item">
+                    <label>Number of Boids</label>
+                    <div class="input-group">
+                        <input type="range" id="numBoids" min="1" max="500" step="1" value="150"><input type="number" id="numBoidsValue" class="slider-value" value="150">
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label>Number of Species</label>
+                    <div class="input-group">
+                        <input type="range" id="numSpecies" min="1" max="8" step="1" value="3"><input type="number" id="numSpeciesValue" class="slider-value" value="3">
+                    </div>
+                </div>
+                <div id="speciesProportionsContainer"></div>
+            </details>
+            <details>
+                 <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>Food Web</summary>
+                 <div id="addInteractionContainer">
+                    <div class="control-item">
+                        <label>Predator</label>
+                        <div class="single-button"><select id="predatorSelect"></select></div>
+                    </div>
+                    <div class="control-item">
+                        <label>Prey</label>
+                        <div class="single-button"><select id="preySelect"></select></div>
+                    </div>
+                     <div class="control-item">
+                         <label>Strength</label>
+                         <div class="input-group">
+                            <input type="number" id="interactionStrength" class="slider-value" value="1.0" min="0.1" step="0.1" style="width: 100%; margin-left: 0;">
+                         </div>
+                     </div>
+                     <div class="control-item" style="padding-top:0;">
+                         <label></label>
+                         <div class="single-button">
+                             <button id="addInteractionBtn">Add Interaction</button>
+                         </div>
+                     </div>
+                 </div>
+                 <div id="foodWebContainer">
+                     <ul id="interactionsList"></ul>
+                     <div id="foodWebGraphContainer">
+                         <p>Food Web Graph</p>
+                         <svg id="foodWebGraph"></svg>
+                     </div>
+                 </div>
+            </details>
+            <details>
+                <summary><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></svg>Flocking Behavior</summary>
+                <div class="control-item">
+                    <label>Control Target</label>
+                    <div class="single-button">
+                        <select id="speciesControlSelect">
+                            <option value="-1">Global (All Species)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-item"><label>Max Speed</label><div class="input-group"><input type="range" id="maxSpeed" min="0.1" max="10" step="0.1" value="3"><input type="number" id="maxSpeedValue" class="slider-value" value="3.0" step="0.1"></div></div>
+                <div class="control-item"><label>Max Force</label><div class="input-group"><input type="range" id="maxForce" min="0.01" max="0.5" step="0.01" value="0.05"><input type="number" id="maxForceValue" class="slider-value" value="0.05" step="0.01"></div></div>
+                <div class="control-item"><label>Perception</label><div class="input-group"><input type="range" id="perception" min="10" max="200" step="1" value="50"><input type="number" id="perceptionValue" class="slider-value" value="50"></div></div>
+                <div class="control-item"><label>Separation Dist.</label><div class="input-group"><input type="range" id="separationDistance" min="5" max="100" step="1" value="25"><input type="number" id="separationDistanceValue" class="slider-value" value="25"></div></div>
+                <div class="control-item"><label>Alignment</label><div class="input-group"><input type="range" id="alignmentWeight" min="0" max="5" step="0.1" value="1.0"><input type="number" id="alignmentWeightValue" class="slider-value" value="1.0" step="0.1"></div></div>
+                <div class="control-item"><label>Cohesion</label><div class="input-group"><input type="range" id="cohesionWeight" min="0" max="5" step="0.1" value="1.0"><input type="number" id="cohesionWeightValue" class="slider-value" value="1.0" step="0.1"></div></div>
+                <div class="control-item"><label>Separation</label><div class="input-group"><input type="range" id="separationWeight" min="0" max="5" step="0.1" value="1.5"><input type="number" id="separationWeightValue" class="slider-value" value="1.5" step="0.1"></div></div>
+            </details>
+            <details>
+                <summary><svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5.67-1.5 1.5S5.67 15 6.5 15s1.5-.67 1.5-1.5S7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"></path></svg>Appearance</summary>
+                <div class="control-item"><label>Display Mode</label><div class="single-button"><button id="modeToggle" class="toggle-button active">Dark Mode</button></div></div>
+                <div class="control-item"><label>Boid Shape</label><div class="single-button"><select id="boidAppearance"><option value="cones">Cones</option><option value="fish">Fish</option><option value="birds">Birds</option></select></div></div>
+                <div class="control-item"><label>Boundary Type</label><div class="single-button"><select id="boundaryType"><option value="walls">Walls</option><option value="periodic" selected>Periodic</option></select></div></div>
+                <div class="control-item"><label>Show Boundaries</label><div class="single-button"><button id="showBoundariesToggle" class="toggle-button">Show</button></div></div>
+                <div class="control-item"><label>Render Distance</label><div class="input-group"><input type="range" id="renderDistance" min="400" max="5000" step="10" value="2000"><input type="number" id="renderDistanceValue" class="slider-value" value="2000"></div></div>
+            </details>
+             <details>
+                <summary><svg viewBox="0 0 24 24"><path d="M3 12h2l2.5-4 3 8 2.5-6 2 4h2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>Trails</summary>
+                 <div class="control-item"><label>Enable Trails</label><div class="single-button"><button id="trailsToggle" class="toggle-button">Enable</button></div></div>
+                <div class="control-item" id="trailLengthContainer" style="display: none;"><label>Trail Length</label><div class="input-group"><input type="range" id="trailLength" min="2" max="50" step="1" value="20"><input type="number" id="trailLengthValue" class="slider-value" value="20" step="1"></div></div>
+            </details>
+        </div>
+    </div>
+    
+    <input type="color" id="colorPicker" style="display: none;">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- Basic setup ---
+        let scene, camera, renderer, controls, clock;
+        let boids = [];
+        let worldSize = 400;
+        const MAX_BOIDS = 500;
+
+        // --- Helper Objects ---
+        let boundaryHelper, spatialGrid;
+        let hemiLight, dirLight;
+        let isPaused = false;
+        let speciesProportions = [];
+        let instancedMesh;
+        let speciesParams = [];
+        let interactions = [];
+        
+        // --- Food Web Graph Variables ---
+        let graphNodes = [], graphLinks = [], graphAnimationId = null;
+        let draggedNode = null;
+
+        // Global/default parameters object
+        const params = {
+            numBoids: 150, numSpecies: 3, maxSpeed: 3, maxForce: 0.05,
+            perceptionRadius: 50, separationDistance: 25, alignmentWeight: 1.0,
+            cohesionWeight: 1.0, separationWeight: 1.5, boundaryType: 'periodic',
+            boidAppearance: 'cones', mode: 'dark', trailsEnabled: true,
+            trailLength: 20, renderDistance: 2000
+        };
+        
+        const flockingParamKeys = ['maxSpeed', 'maxForce', 'perceptionRadius', 'separationDistance', 'alignmentWeight', 'cohesionWeight', 'separationWeight'];
+        
+        const speciesPalette = [
+            { h: 0.0,  s: 0.95, l: 0.6 },  // Bright Red
+            { h: 0.58, s: 0.9,  l: 0.65 }, // Bright Blue
+            { h: 0.15, s: 1.0,  l: 0.55 }, // Vivid Orange
+            { h: 0.3,  s: 0.9,  l: 0.7 },  // Lime Green
+            { h: 0.8,  s: 0.9,  l: 0.65 }, // Purple
+            { h: 0.5,  s: 1.0,  l: 0.6 },  // Cyan
+            { h: 0.9,  s: 1.0,  l: 0.7 },  // Hot Pink
+            { h: 0.22, s: 0.8,  l: 0.8 }   // Chartreuse
+        ];
+        
+        const modes = {
+            dark: { bg: 0x050c1c, fog: 0x050c1c, hemiSky: 0x6090b0, hemiGround: 0x103050, dir: 0xffffff },
+            light: { bg: 0xfafafa, fog: 0xfafafa, hemiSky: 0xffffff, hemiGround: 0xcccccc, dir: 0xffffff }
+        };
+
+        function createFlockingParams() {
+            const p = {};
+            flockingParamKeys.forEach(key => p[key] = params[key]);
+            return p;
+        }
+
+        function initSpeciesParams() {
+            speciesParams = [];
+            for (let i = 0; i < params.numSpecies; i++) {
+                speciesParams.push(createFlockingParams());
+            }
+        }
+
+        function updateParamsFromUI() {
+            params.numBoids = parseInt(document.getElementById('numBoidsValue').value, 10);
+            params.numSpecies = parseInt(document.getElementById('numSpeciesValue').value, 10);
+            params.trailLength = parseInt(document.getElementById('trailLengthValue').value, 10);
+            const newRenderDistance = parseFloat(document.getElementById('renderDistanceValue').value);
+            if (params.renderDistance !== newRenderDistance) {
+                params.renderDistance = newRenderDistance;
+                if (camera) {
+                    camera.far = params.renderDistance;
+                    scene.fog.far = params.renderDistance;
+                    camera.updateProjectionMatrix();
+                }
+            }
+            params.boundaryType = document.getElementById('boundaryType').value;
+            params.boidAppearance = document.getElementById('boidAppearance').value;
+        }
+
+        function applyMode(modeName) {
+            params.mode = modeName;
+            const mode = modes[modeName];
+            document.documentElement.classList.toggle('light-mode', modeName === 'light');
+            scene.background.set(mode.bg);
+            scene.fog.color.set(mode.fog);
+            hemiLight.color.set(mode.hemiSky);
+            hemiLight.groundColor.set(mode.hemiGround);
+            dirLight.color.set(mode.dir);
+        }
+
+        function hexToHsl(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            let r = parseInt(result[1], 16) / 255;
+            let g = parseInt(result[2], 16) / 255;
+            let b = parseInt(result[3], 16) / 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h, s, l };
+        }
+
+        function createBoidBaseMesh(type) {
+             let geometry;
+            switch (type) {
+                case 'fish':
+                    geometry = new THREE.BufferGeometry();
+                    const fishVertices = new Float32Array([0,0,6, -2,0,0, 2,0,0, 0,2,0, 0,-2,0, -2,0,-4, 2,0,-4, 0,0,-3]);
+                    const fishIndices = [0,1,3, 0,3,2, 0,2,4, 0,4,1, 7,5,6];
+                    geometry.setAttribute('position', new THREE.BufferAttribute(fishVertices, 3));
+                    geometry.setIndex(fishIndices);
+                    break;
+                case 'birds':
+                    geometry = new THREE.BufferGeometry();
+                    const birdVertices = new Float32Array([-8,0,-2, 8,0,-2, 0,0.5,2, 0,-0.5,2, 0,0,-6]);
+                    const birdIndices = [0,2,3, 0,3,4, 1,2,3, 1,4,2];
+                    geometry.setAttribute('position', new THREE.BufferAttribute(birdVertices, 3));
+                    geometry.setIndex(birdIndices);
+                    break;
+                case 'cones':
+                default:
+                    geometry = new THREE.ConeGeometry(2, 8, 5);
+                    geometry.rotateX(Math.PI / 2);
+            }
+            geometry.computeVertexNormals();
+            return geometry;
+        }
+
+        class Boid {
+            constructor(position, speciesId) {
+                this.speciesId = speciesId;
+                this.position = position || new THREE.Vector3((Math.random()-0.5)*worldSize, (Math.random()-0.5)*worldSize, (Math.random()-0.5)*worldSize);
+                this.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+                if (this.velocity.lengthSq() === 0) { this.velocity.set(1, 0, 0); }
+                this.velocity.setLength(Math.random() * 2 + 1);
+                this.acceleration = new THREE.Vector3();
+                this.trail = null;
+                if(params.trailsEnabled) this.createTrail(params.trailLength);
+            }
+
+            createTrail(length) {
+                if (!length || length < 2) return;
+                const points = Array.from({length}, () => this.position.clone());
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const colors = new Float32Array(length * 3);
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true });
+                this.trail = new THREE.Line(geometry, material);
+                scene.add(this.trail);
+            }
+            
+            updateTrailLength(newLength) {
+                this.removeTrail();
+                if (params.trailsEnabled && newLength > 1) {
+                    this.createTrail(newLength);
+                    this.resetTrail();
+                }
+            }
+
+            removeTrail() {
+                if(this.trail) {
+                    scene.remove(this.trail);
+                    this.trail.geometry.dispose();
+                    this.trail.material.dispose();
+                    this.trail = null;
+                }
+            }
+            
+            resetTrail() {
+                if (!this.trail) return;
+                const positions = this.trail.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length / 3; i++) {
+                    this.position.toArray(positions, i * 3);
+                }
+                this.trail.geometry.attributes.position.needsUpdate = true;
+            }
+
+            flock(neighbors, flockParams) {
+                let alignment = new THREE.Vector3();
+                let cohesion = new THREE.Vector3();
+                let separation = new THREE.Vector3();
+                let sameSpeciesCount = 0;
+                let separationContributors = 0;
+
+                for (let other of neighbors) {
+                    let d = this.position.distanceTo(other.position);
+                    if (other !== this && d > 0) { // Perception radius check is now done before calling flock
+                        if (d < flockParams.separationDistance) {
+                           let diff = new THREE.Vector3().subVectors(this.position, other.position);
+                           diff.divideScalar(d * d); 
+                           separation.add(diff);
+                           separationContributors++;
+                        }
+                        if(other.speciesId === this.speciesId) {
+                            alignment.add(other.velocity);
+                            cohesion.add(other.position);
+                            sameSpeciesCount++;
+                        }
+                    }
+                }
+
+                if (sameSpeciesCount > 0) {
+                    alignment.divideScalar(sameSpeciesCount).setLength(flockParams.maxSpeed).sub(this.velocity).clampLength(0, flockParams.maxForce);
+                    cohesion.divideScalar(sameSpeciesCount).sub(this.position).setLength(flockParams.maxSpeed).sub(this.velocity).clampLength(0, flockParams.maxForce);
+                }
+
+                if(separationContributors > 0) {
+                    separation.divideScalar(separationContributors).setLength(flockParams.maxSpeed).sub(this.velocity).clampLength(0, flockParams.maxForce);
+                }
+                
+                this.acceleration.add(alignment.multiplyScalar(flockParams.alignmentWeight));
+                this.acceleration.add(cohesion.multiplyScalar(flockParams.cohesionWeight));
+                this.acceleration.add(separation.multiplyScalar(flockParams.separationWeight));
+            }
+
+            update() {
+                this.velocity.add(this.acceleration);
+                this.velocity.clampLength(0, speciesParams[this.speciesId]?.maxSpeed || params.maxSpeed);
+                this.position.add(this.velocity);
+                this.acceleration.multiplyScalar(0);
+            }
+
+            boundaries() {
+                const halfWorld = worldSize / 2;
+                if (params.boundaryType === 'walls') {
+                    const turnFactor = 5;
+                    if (this.position.x > halfWorld) this.acceleration.x -= turnFactor;
+                    if (this.position.x < -halfWorld) this.acceleration.x += turnFactor;
+                    if (this.position.y > halfWorld) this.acceleration.y -= turnFactor;
+                    if (this.position.y < -halfWorld) this.acceleration.y += turnFactor;
+                    if (this.position.z > halfWorld) this.acceleration.z -= turnFactor;
+                    if (this.position.z < -halfWorld) this.acceleration.z += turnFactor;
+                } else {
+                    let wrapped = false;
+                    if (this.position.x > halfWorld) { this.position.x = -halfWorld; wrapped = true; }
+                    if (this.position.x < -halfWorld) { this.position.x = halfWorld; wrapped = true; }
+                    if (this.position.y > halfWorld) { this.position.y = -halfWorld; wrapped = true; }
+                    if (this.position.y < -halfWorld) { this.position.y = halfWorld; wrapped = true; }
+                    if (this.position.z > halfWorld) { this.position.z = -halfWorld; wrapped = true; }
+                    if (this.position.z < -halfWorld) { this.position.z = halfWorld; wrapped = true; }
+                    if(wrapped && this.trail) this.resetTrail();
+                }
+            }
+
+             updateTrail() {
+                if(!this.trail) return;
+                const positions = this.trail.geometry.attributes.position.array;
+                const colors = this.trail.geometry.attributes.color.array;
+                const trailLength = positions.length / 3;
+
+                for(let i = 0; i < trailLength - 1; i++) {
+                    positions[i*3] = positions[(i+1)*3];
+                    positions[i*3+1] = positions[(i+1)*3+1];
+                    positions[i*3+2] = positions[(i+1)*3+2];
+                }
+                this.position.toArray(positions, (trailLength - 1) * 3);
+                
+                const baseColor = speciesPalette[this.speciesId % speciesPalette.length];
+                const color = new THREE.Color();
+                for(let i=0; i<trailLength; i++) {
+                    const alpha = i / (trailLength -1);
+                    color.setHSL(baseColor.h, baseColor.s, baseColor.l);
+                    color.toArray(colors, i*3);
+                    this.trail.material.opacity = alpha;
+                }
+
+                this.trail.geometry.attributes.position.needsUpdate = true;
+                this.trail.geometry.attributes.color.needsUpdate = true;
+            }
+        }
+
+        function getSpeciesIdByProportion() {
+            let cumulativeProportion = 0;
+            const proportions = speciesProportions.map(p => cumulativeProportion += p);
+            const totalProportion = proportions[proportions.length - 1] || 1;
+            if (totalProportion <= 0) { return Math.floor(Math.random() * params.numSpecies); }
+            const rand = Math.random() * totalProportion;
+            for(let j=0; j<proportions.length; j++) {
+                if(rand < proportions[j]) { return j; }
+            }
+            return 0;
+        }
+
+        function rebalanceSpecies() {
+            if (boids.length === 0) return;
+            let totalProportion = speciesProportions.reduce((a, b) => a + b, 0);
+            if (totalProportion <= 0) {
+                speciesProportions.fill(1 / params.numSpecies);
+                totalProportion = 1;
+            }
+            const targetCounts = speciesProportions.map(p => Math.floor(p / totalProportion * boids.length));
+            let remainder = boids.length - targetCounts.reduce((a, b) => a + b, 0);
+            while (remainder > 0) {
+                targetCounts[remainder % params.numSpecies]++;
+                remainder--;
+            }
+            const shuffledBoids = [...boids].sort(() => 0.5 - Math.random());
+            let boidIndex = 0;
+            for (let speciesId = 0; speciesId < params.numSpecies; speciesId++) {
+                for (let i = 0; i < targetCounts[speciesId]; i++) {
+                    if (shuffledBoids[boidIndex]) {
+                        shuffledBoids[boidIndex].speciesId = speciesId;
+                    }
+                    boidIndex++;
+                }
+            }
+        }
+
+        function updateProportionSliders() {
+            const container = document.getElementById('speciesProportionsContainer');
+            container.innerHTML = '';
+            const oldProportions = [...speciesProportions];
+            speciesProportions = [];
+            const colorPicker = document.getElementById('colorPicker');
+            let targetSpeciesIdForColorChange = -1;
+
+            for (let i = 0; i < params.numSpecies; i++) {
+                const proportion = (oldProportions[i] !== undefined) ? oldProportions[i] : (1 / params.numSpecies);
+                speciesProportions.push(proportion);
+
+                const controlItem = document.createElement('div');
+                controlItem.className = 'control-item';
+                const label = document.createElement('label');
+                const baseColor = speciesPalette[i % speciesPalette.length];
+                const color = new THREE.Color().setHSL(baseColor.h, baseColor.s, baseColor.l);
+                label.innerHTML = `Species ${i + 1} <span class="species-color-swatch" data-species-id="${i}" style="background-color:${color.getStyle()};"></span>`;
+                
+                label.querySelector('.species-color-swatch').addEventListener('click', (e) => {
+                    targetSpeciesIdForColorChange = parseInt(e.target.dataset.speciesId);
+                    const currentColor = speciesPalette[targetSpeciesIdForColorChange];
+                    colorPicker.value = '#' + new THREE.Color().setHSL(currentColor.h, currentColor.s, currentColor.l).getHexString();
+                    colorPicker.oninput = () => {
+                         if (targetSpeciesIdForColorChange !== -1) {
+                            const newColorHex = colorPicker.value;
+                            speciesPalette[targetSpeciesIdForColorChange] = hexToHsl(newColorHex);
+                            e.target.style.backgroundColor = newColorHex;
+                            updateFoodWebGraph();
+                        }
+                    };
+                    colorPicker.click();
+                });
+
+                const div = document.createElement('div');
+                div.className = 'input-group';
+                const slider = document.createElement('input');
+                slider.type = 'range'; slider.min = 0; slider.max = 1; slider.step = 0.01;
+                slider.value = proportion; slider.dataset.speciesId = i;
+                const valueInput = document.createElement('input');
+                valueInput.type = 'number'; valueInput.className = 'slider-value';
+                valueInput.value = proportion.toFixed(2); valueInput.step = 0.01;
+
+                const handleInput = (newValue) => {
+                    speciesProportions[parseInt(slider.dataset.speciesId)] = newValue;
+                    rebalanceSpecies();
+                };
+
+                slider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    valueInput.value = value.toFixed(2);
+                    handleInput(value);
+                });
+                valueInput.addEventListener('change', (e) => {
+                    let value = parseFloat(e.target.value);
+                    if(isNaN(value)) value = 0;
+                    value = Math.max(0, Math.min(1, value));
+                    slider.value = value;
+                    e.target.value = value.toFixed(2);
+                    handleInput(value);
+                });
+                controlItem.appendChild(label);
+                div.appendChild(slider); div.appendChild(valueInput);
+                controlItem.appendChild(div);
+                container.appendChild(controlItem);
+            }
+        }
+        
+        function setBoidCount(newCount) {
+            const currentCount = boids.length;
+            params.numBoids = newCount;
+            if (newCount > currentCount) {
+                for (let i = 0; i < newCount - currentCount; i++) {
+                    boids.push(new Boid(null, getSpeciesIdByProportion()));
+                }
+            } else if (newCount < currentCount) {
+                boids.splice(newCount).forEach(boid => boid.removeTrail());
+            }
+        }
+
+        function resetSimulation() {
+            updateParamsFromUI();
+            initSpeciesParams();
+            interactions = [];
+            updateFoodWebUI();
+            boids.forEach(boid => boid.removeTrail());
+            boids = [];
+            for (let i = 0; i < params.numBoids; i++) {
+                boids.push(new Boid(null, getSpeciesIdByProportion()));
+            }
+        }
+        
+        function updateFoodWebUI(preserveSelection = false) {
+            const predatorSelect = document.getElementById('predatorSelect');
+            const preySelect = document.getElementById('preySelect');
+            const oldPredatorValue = predatorSelect.value;
+            const oldPreyValue = preySelect.value;
+            
+            predatorSelect.innerHTML = '';
+            preySelect.innerHTML = '';
+
+            for (let i = 0; i < params.numSpecies; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Species ${i + 1}`;
+                predatorSelect.appendChild(option.cloneNode(true));
+                preySelect.appendChild(option);
+            }
+
+            if (preserveSelection) {
+                 predatorSelect.value = oldPredatorValue;
+                 preySelect.value = oldPreyValue;
+            } else {
+                predatorSelect.value = '0';
+                preySelect.value = '0';
+            }
+
+
+            const list = document.getElementById('interactionsList');
+            list.innerHTML = '';
+            interactions.forEach((interaction, index) => {
+                const li = document.createElement('li');
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = `S${interaction.predatorId + 1} eats S${interaction.preyId + 1}`;
+                
+                const strengthInput = document.createElement('input');
+                strengthInput.type = 'number';
+                strengthInput.className = 'slider-value';
+                strengthInput.value = interaction.strength.toFixed(1);
+                strengthInput.min = 0.1;
+                strengthInput.step = 0.1;
+                strengthInput.dataset.index = index;
+
+                strengthInput.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    let newValue = parseFloat(e.target.value);
+                    if (isNaN(newValue) || newValue <= 0) {
+                        newValue = 0.1;
+                    }
+                    e.target.value = newValue.toFixed(1);
+                    interactions[idx].strength = newValue;
+                    updateFoodWebGraph();
+                });
+
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '&times;';
+                removeBtn.dataset.index = index;
+                removeBtn.addEventListener('click', (e) => {
+                    removeInteraction(parseInt(e.target.dataset.index));
+                });
+
+                li.appendChild(textSpan);
+                li.appendChild(strengthInput);
+                li.appendChild(removeBtn);
+                list.appendChild(li);
+            });
+            updateFoodWebGraph();
+        }
+
+        function addInteraction() {
+            const predatorId = parseInt(document.getElementById('predatorSelect').value);
+            const preyId = parseInt(document.getElementById('preySelect').value);
+            const strength = parseFloat(document.getElementById('interactionStrength').value);
+
+            if (interactions.some(i => i.predatorId === predatorId && i.preyId === preyId)) {
+                console.warn("This interaction already exists.");
+                return;
+            }
+
+            interactions.push({ predatorId, preyId, strength });
+            updateFoodWebUI(true); // Preserve selection
+        }
+
+        function removeInteraction(index) {
+            interactions.splice(index, 1);
+            updateFoodWebUI(true); // Preserve selection
+        }
+
+        function updateSpeciesControlDropdown() {
+            const select = document.getElementById('speciesControlSelect');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="-1">Global (All Species)</option>';
+            for (let i = 0; i < params.numSpecies; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Species ${i + 1}`;
+                select.appendChild(option);
+            }
+            select.value = document.querySelector(`#speciesControlSelect option[value="${currentValue}"]`) ? currentValue : "-1";
+        }
+
+        function updateFlockingUI() {
+            const speciesId = parseInt(document.getElementById('speciesControlSelect').value, 10);
+            const sourceParams = (speciesId === -1) ? params : speciesParams[speciesId];
+            
+            flockingParamKeys.forEach(key => {
+                const inputId = key === 'perceptionRadius' ? 'perception' : key;
+                const slider = document.getElementById(inputId);
+                const valueInput = document.getElementById(`${inputId}Value`);
+                if (slider && valueInput) {
+                    slider.value = sourceParams[key];
+                    const dp = { maxSpeed: 1, maxForce: 2, alignmentWeight: 1, cohesionWeight: 1, separationWeight: 1 }[key.replace('Radius','')] || 0;
+                    valueInput.value = parseFloat(sourceParams[key]).toFixed(dp);
+                }
+            });
+        }
+        
+        // --- FORCE DIRECTED GRAPH LOGIC ---
+        function updateFoodWebGraph() {
+            const svg = document.getElementById('foodWebGraph');
+            const { width, height } = svg.getBoundingClientRect();
+            
+            if (graphAnimationId) cancelAnimationFrame(graphAnimationId);
+
+            const oldNodes = new Map(graphNodes.map(n => [n.id, n]));
+            graphNodes = [];
+            for (let i = 0; i < params.numSpecies; i++) {
+                const oldNode = oldNodes.get(i);
+                graphNodes.push({
+                    id: i,
+                    x: oldNode ? oldNode.x : Math.random() * width,
+                    y: oldNode ? oldNode.y : Math.random() * height,
+                    vx: oldNode ? oldNode.vx : 0,
+                    vy: oldNode ? oldNode.vy : 0
+                });
+            }
+
+            graphLinks = interactions.map(i => ({
+                source: graphNodes.find(n => n.id === i.predatorId),
+                target: graphNodes.find(n => n.id === i.preyId),
+                strength: i.strength
+            }));
+
+            runGraphSimulation();
+        }
+
+        function runGraphSimulation() {
+            const svg = document.getElementById('foodWebGraph');
+            if (!svg) return;
+            const { width, height } = svg.getBoundingClientRect();
+
+            // Physics constants
+            const repulsionStrength = -400;
+            const linkStrength = 0.05;
+            const linkDistance = 90;
+            const centerForceStrength = 0.01;
+            const damping = 0.9;
+            const nodeRadius = 12;
+
+            // Update forces
+            for (const node of graphNodes) {
+                // Repulsion from other nodes
+                for (const otherNode of graphNodes) {
+                    if (node === otherNode) continue;
+                    const dx = otherNode.x - node.x;
+                    const dy = otherNode.y - node.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 1) distance = 1;
+                    const force = repulsionStrength / (distance * distance);
+                    node.vx += force * dx / distance;
+                    node.vy += force * dy / distance;
+                }
+
+                // Center force
+                node.vx += (width / 2 - node.x) * centerForceStrength;
+                node.vy += (height / 2 - node.y) * centerForceStrength;
+            }
+
+            // Update link forces
+            for (const link of graphLinks) {
+                if (!link.source || !link.target) continue;
+                const dx = link.target.x - link.source.x;
+                const dy = link.target.y - link.source.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 0) {
+                    const displacement = distance - linkDistance;
+                    const force = displacement * linkStrength;
+                    const fx = (force * dx) / distance;
+                    const fy = (force * dy) / distance;
+                    link.source.vx += fx; link.source.vy += fy;
+                    link.target.vx -= fx; link.target.vy -= fy;
+                }
+            }
+            
+            // Update positions
+            for (const node of graphNodes) {
+                if (node === draggedNode) continue;
+
+                node.vx *= damping;
+                node.vy *= damping;
+                node.x += node.vx;
+                node.y += node.vy;
+
+                // Boundary collision
+                node.x = Math.max(nodeRadius, Math.min(width - nodeRadius, node.x));
+                node.y = Math.max(nodeRadius, Math.min(height - nodeRadius, node.y));
+            }
+            
+            drawGraph();
+            graphAnimationId = requestAnimationFrame(runGraphSimulation);
+        }
+
+        function drawGraph() {
+            const svg = document.getElementById('foodWebGraph');
+            const color = new THREE.Color();
+            const minStroke = 1.5;
+            const maxStroke = 4;
+            const allStrengths = interactions.map(i => i.strength).filter(s => s > 0);
+            const minStrength = allStrengths.length > 0 ? Math.min(...allStrengths) : 1;
+            const maxStrength = allStrengths.length > 0 ? Math.max(...allStrengths) : 1;
+            const nodeRadius = 12;
+
+            svg.innerHTML = `<defs><marker id="arrow" viewBox="0 -5 10 10" refX="8" refY="0" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,-5L10,0L0,5" fill="${getComputedStyle(svg).getPropertyValue('--text-secondary')}"></path></marker></defs>`;
+
+            const linkPairs = {};
+            graphLinks.forEach((link) => {
+                if (!link.source || !link.target) return;
+                const key = `${Math.min(link.source.id, link.target.id)}-${Math.max(link.source.id, link.target.id)}`;
+                if (!linkPairs[key]) linkPairs[key] = [];
+                linkPairs[key].push(link);
+            });
+
+            graphLinks.forEach(link => {
+                if (!link.source || !link.target) return;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'graph-link');
+                
+                let strokeWidth = minStroke;
+                if (maxStrength > minStrength) {
+                    strokeWidth = minStroke + (link.strength - minStrength) / (maxStrength - minStrength) * (maxStroke - minStroke);
+                } else if (allStrengths.length > 0) {
+                    strokeWidth = (minStroke + maxStroke) / 2;
+                }
+                path.setAttribute('stroke-width', strokeWidth);
+
+                const key = `${Math.min(link.source.id, link.target.id)}-${Math.max(link.source.id, link.target.id)}`;
+
+                const sx = link.source.x, sy = link.source.y;
+                const tx = link.target.x, ty = link.target.y;
+
+                if (link.source.id === link.target.id) { // Self-loop
+                    const r = nodeRadius * 1.5;
+                    const endAngle = -Math.PI / 2;
+                    const startX = sx + nodeRadius * Math.cos(endAngle + 0.4);
+                    const startY = sy + nodeRadius * Math.sin(endAngle + 0.4);
+                    const endX = sx + nodeRadius * Math.cos(endAngle - 0.4);
+                    const endY = sy + nodeRadius * Math.sin(endAngle - 0.4);
+                    path.setAttribute('d', `M ${startX},${startY} A ${r},${r} 0 1,1 ${endX},${endY}`);
+                    path.setAttribute('marker-end', 'url(#arrow)');
+                } else {
+                    const dx = tx - sx, dy = ty - sy;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const newTx = tx - (dx / dist) * (nodeRadius + 2);
+                    const newTy = ty - (dy / dist) * (nodeRadius + 2);
+                    
+                    if (linkPairs[key].length > 1 && linkPairs[key].find(l => l.source.id === link.target.id && l.target.id === link.source.id)) {
+                       const sweep = link.source.id > link.target.id ? 1 : 0;
+                       path.setAttribute('d', `M${sx},${sy} A${dist},${dist} 0 0,${sweep} ${newTx},${newTy}`);
+                    } else {
+                       path.setAttribute('d', `M${sx},${sy} L${newTx},${newTy}`);
+                    }
+                     path.setAttribute('marker-end', 'url(#arrow)');
+                }
+                svg.appendChild(path);
+            });
+
+            graphNodes.forEach(node => {
+                const baseColor = speciesPalette[node.id % speciesPalette.length];
+                color.setHSL(baseColor.h, baseColor.s, baseColor.l);
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', node.x);
+                circle.setAttribute('cy', node.y);
+                circle.setAttribute('r', nodeRadius);
+                circle.setAttribute('fill', color.getStyle());
+                circle.setAttribute('class', 'graph-node');
+                circle.dataset.id = node.id;
+                svg.appendChild(circle);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', node.x);
+                text.setAttribute('y', node.y + 4);
+                text.textContent = `S${node.id + 1}`;
+                text.setAttribute('class', 'graph-text');
+                svg.appendChild(text);
+            });
+        }
+        
+        function setupGraphDrag() {
+            const svg = document.getElementById('foodWebGraph');
+            svg.addEventListener('mousedown', (e) => {
+                const target = e.target.closest('circle');
+                if (target) {
+                    const id = parseInt(target.dataset.id);
+                    draggedNode = graphNodes.find(n => n.id === id);
+                }
+            });
+            svg.addEventListener('mousemove', (e) => {
+                if (draggedNode) {
+                    const rect = svg.getBoundingClientRect();
+                    draggedNode.x = e.clientX - rect.left;
+                    draggedNode.y = e.clientY - rect.top;
+                    draggedNode.vx = 0; draggedNode.vy = 0;
+                }
+            });
+            svg.addEventListener('mouseup', () => { draggedNode = null; });
+            svg.addEventListener('mouseleave', () => { draggedNode = null; });
+        }
+
+
+        function setupControls() {
+            // Non-flocking sliders
+            ['numBoids', 'numSpecies', 'trailLength', 'renderDistance'].forEach(id => {
+                 const slider = document.getElementById(id);
+                const valueInput = document.getElementById(`${id}Value`);
+                if(!slider || !valueInput) return;
+                 slider.addEventListener('input', e => valueInput.value = e.target.value);
+                 valueInput.addEventListener('change', e => {
+                    let value = parseInt(e.target.value, 10);
+                    const min = parseInt(slider.min, 10);
+                    const max = parseInt(slider.max, 10);
+                    if(isNaN(value)) value = min;
+                    slider.value = Math.max(min, Math.min(max, value));
+                    slider.dispatchEvent(new Event('input', { bubbles:true }));
+                 });
+            });
+            document.getElementById('numBoids').addEventListener('input', e => setBoidCount(parseInt(e.target.value,10)));
+
+            // Flocking sliders
+            const flockingSliders = { maxSpeed: 'maxSpeed', maxForce: 'maxForce', perception: 'perceptionRadius', separationDistance: 'separationDistance', alignmentWeight: 'alignmentWeight', cohesionWeight: 'cohesionWeight', separationWeight: 'separationWeight' };
+            const flockingDecimalPlaces = { maxSpeed: 1, maxForce: 2, alignmentWeight: 1, cohesionWeight: 1, separationWeight: 1 };
+            
+            Object.entries(flockingSliders).forEach(([id, paramKey]) => {
+                const slider = document.getElementById(id);
+                const valueInput = document.getElementById(`${id}Value`);
+                if(!slider || !valueInput) return;
+                
+                const handleInput = () => {
+                    const speciesId = parseInt(document.getElementById('speciesControlSelect').value, 10);
+                    const newValue = parseFloat(slider.value);
+                    if (speciesId === -1) {
+                        params[paramKey] = newValue;
+                        speciesParams.forEach(p => p[paramKey] = newValue);
+                    } else if (speciesParams[speciesId]) {
+                        speciesParams[speciesId][paramKey] = newValue;
+                    }
+                };
+
+                slider.addEventListener('input', () => {
+                    const dp = flockingDecimalPlaces[id] || 0;
+                    valueInput.value = parseFloat(slider.value).toFixed(dp);
+                    handleInput();
+                });
+                valueInput.addEventListener('change', () => {
+                    let value = parseFloat(valueInput.value);
+                    if (isNaN(value)) value = parseFloat(slider.min);
+                    slider.value = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), value));
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            });
+            document.getElementById('speciesControlSelect').addEventListener('change', updateFlockingUI);
+            document.getElementById('addInteractionBtn').addEventListener('click', addInteraction);
+
+            const trailLengthSlider = document.getElementById('trailLength');
+            trailLengthSlider.addEventListener('input', () => {
+                params.trailLength = parseInt(trailLengthSlider.value, 10);
+                boids.forEach(boid => boid.updateTrailLength(params.trailLength));
+            });
+            
+            const modeToggle = document.getElementById('modeToggle');
+            modeToggle.addEventListener('click', () => {
+                const isLight = document.documentElement.classList.toggle('light-mode');
+                params.mode = isLight ? 'light' : 'dark';
+                modeToggle.textContent = isLight ? 'Light Mode' : 'Dark Mode';
+                modeToggle.classList.toggle('active', !isLight);
+                applyMode(params.mode);
+            });
+            
+            document.getElementById('boidAppearance').addEventListener('change', e => {
+                params.boidAppearance = e.target.value;
+                scene.remove(instancedMesh);
+                instancedMesh.geometry.dispose();
+                instancedMesh.material.dispose();
+                const newGeometry = createBoidBaseMesh(params.boidAppearance);
+                const newMaterial = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide });
+                instancedMesh = new THREE.InstancedMesh(newGeometry, newMaterial, MAX_BOIDS);
+                scene.add(instancedMesh);
+            });
+            
+            document.getElementById('numSpecies').addEventListener('change', () => {
+                params.numSpecies = parseInt(document.getElementById('numSpecies').value, 10);
+                interactions = interactions.filter(i => i.predatorId < params.numSpecies && i.preyId < params.numSpecies);
+                updateProportionSliders();
+                initSpeciesParams();
+                updateSpeciesControlDropdown();
+                updateFlockingUI();
+                updateFoodWebUI();
+                resetSimulation();
+            });
+
+            const trailsToggle = document.getElementById('trailsToggle');
+            trailsToggle.addEventListener('click', () => {
+                params.trailsEnabled = trailsToggle.classList.toggle('active');
+                trailsToggle.textContent = params.trailsEnabled ? 'Disable' : 'Enable';
+                document.getElementById('trailLengthContainer').style.display = params.trailsEnabled ? 'flex' : 'none';
+                boids.forEach(boid => {
+                    if(params.trailsEnabled) boid.createTrail(params.trailLength);
+                    else boid.removeTrail();
+                });
+            });
+
+            if (params.trailsEnabled) {
+                trailsToggle.classList.add('active');
+                trailsToggle.textContent = 'Disable';
+                document.getElementById('trailLengthContainer').style.display = 'flex';
+            }
+
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            playPauseBtn.addEventListener('click', () => {
+                isPaused = !isPaused;
+                playPauseBtn.textContent = isPaused ? 'Play' : 'Pause';
+            });
+            document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+
+            const boundariesToggle = document.getElementById('showBoundariesToggle');
+            boundariesToggle.addEventListener('click', () => {
+                const isActive = boundariesToggle.classList.toggle('active');
+                boundaryHelper.visible = isActive;
+                boundariesToggle.textContent = isActive ? 'Hide' : 'Show';
+            });
+
+            // Mobile menu logic
+            const menuToggle = document.getElementById('menuToggle');
+            const controlsPanel = document.getElementById('controls');
+            const menuIconOpen = document.getElementById('menuIconOpen');
+            const menuIconClose = document.getElementById('menuIconClose');
+
+            menuToggle.addEventListener('click', () => {
+                const isOpen = controlsPanel.classList.toggle('open');
+                menuIconOpen.style.display = isOpen ? 'none' : 'block';
+                menuIconClose.style.display = isOpen ? 'block' : 'none';
+            });
+        }
+        
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color();
+            scene.fog = new THREE.Fog(0x111111, worldSize * 1.5, params.renderDistance);
+            clock = new THREE.Clock();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, params.renderDistance);
+            camera.position.set(0, 150, 350);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+            scene.add(hemiLight);
+            dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight.position.set(50, 200, 100);
+            scene.add(dirLight);
+            
+            const geometry = createBoidBaseMesh(params.boidAppearance);
+            const material = new THREE.MeshLambertMaterial({side: THREE.DoubleSide});
+            instancedMesh = new THREE.InstancedMesh(geometry, material, MAX_BOIDS);
+            scene.add(instancedMesh);
+            
+            const half = worldSize / 2;
+            const box = new THREE.Box3(new THREE.Vector3(-half, -half, -half), new THREE.Vector3(half, half, half));
+            boundaryHelper = new THREE.Box3Helper(box, 0x888888);
+            boundaryHelper.visible = false;
+            scene.add(boundaryHelper);
+            
+            const gridSize = 10;
+            spatialGrid = new SpatialGrid(new THREE.Box3(new THREE.Vector3(-half,-half,-half), new THREE.Vector3(half,half,half)), new THREE.Vector3(gridSize,gridSize,gridSize));
+            
+            setupControls();
+            setupGraphDrag();
+            updateParamsFromUI();
+            initSpeciesParams();
+            updateProportionSliders();
+            updateSpeciesControlDropdown();
+            updateFlockingUI();
+            updateFoodWebUI();
+            resetSimulation();
+            applyMode(params.mode);
+            
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            if(!isPaused) {
+                spatialGrid.clear();
+                boids.forEach(boid => spatialGrid.insert(boid));
+                boids.forEach(boid => {
+                    const currentParams = speciesParams[boid.speciesId] || params;
+                    const neighbors = spatialGrid.query(boid.position, currentParams.perceptionRadius);
+                    boid.flock(neighbors, currentParams);
+                    boid.update();
+                    boid.boundaries();
+                    boid.updateTrail();
+                });
+
+                const dummy = new THREE.Object3D();
+                const color = new THREE.Color();
+                for (let i = 0; i < boids.length; i++) {
+                    const boid = boids[i];
+                    dummy.position.copy(boid.position);
+                    if (boid.velocity.lengthSq() > 0.001) {
+                        dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), boid.velocity.clone().normalize());
+                    }
+                    if(params.boidAppearance === 'birds') dummy.scale.set(0.8, 0.8, 0.8);
+                    else dummy.scale.set(1, 1, 1);
+                    dummy.updateMatrix();
+                    instancedMesh.setMatrixAt(i, dummy.matrix);
+                    const baseColor = speciesPalette[boid.speciesId % speciesPalette.length];
+                    color.setHSL(baseColor.h, baseColor.s, baseColor.l);
+                    instancedMesh.setColorAt(i, color);
+                }
+                instancedMesh.count = boids.length;
+                instancedMesh.instanceMatrix.needsUpdate = true;
+                if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
+            }
+            renderer.render(scene, camera);
+        }
+        
+        class SpatialGrid {
+            constructor(bounds, dimensions) {
+                this.bounds = bounds; this.dimensions = dimensions; this.cells = new Map();
+                this.cellSize = new THREE.Vector3().subVectors(bounds.max, bounds.min).divide(dimensions);
+            }
+            _getCellIndex(p) {
+                const x = Math.floor((p.x-this.bounds.min.x)/this.cellSize.x), y = Math.floor((p.y-this.bounds.min.y)/this.cellSize.y), z = Math.floor((p.z-this.bounds.min.z)/this.cellSize.z);
+                return `${x},${y},${z}`;
+            }
+            insert(b) {
+                const k = this._getCellIndex(b.position);
+                if (!this.cells.has(k)) this.cells.set(k, []);
+                this.cells.get(k).push(b);
+            }
+            query(p, r) {
+                const res = [];
+                const min = new THREE.Vector3().subVectors(p, new THREE.Vector3(r,r,r)), max = new THREE.Vector3().addVectors(p, new THREE.Vector3(r,r,r));
+                const minI = {x:Math.floor((min.x-this.bounds.min.x)/this.cellSize.x),y:Math.floor((min.y-this.bounds.min.y)/this.cellSize.y),z:Math.floor((min.z-this.bounds.min.z)/this.cellSize.z)};
+                const maxI = {x:Math.floor((max.x-this.bounds.min.x)/this.cellSize.x),y:Math.floor((max.y-this.bounds.min.y)/this.cellSize.y),z:Math.floor((max.z-this.bounds.min.z)/this.cellSize.z)};
+                for (let x=minI.x;x<=maxI.x;x++) for(let y=minI.y;y<=maxI.y;y++) for(let z=minI.z;z<=maxI.z;z++) {
+                    const k = `${x},${y},${z}`;
+                    if (this.cells.has(k)) res.push(...this.cells.get(k));
+                }
+                return res;
+            }
+            clear() { this.cells.clear(); }
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateFoodWebGraph();
+        });
+
+        init();
+    </script>
+</body>
+</html>
+
