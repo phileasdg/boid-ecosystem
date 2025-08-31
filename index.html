@@ -65,35 +65,6 @@
             display: block;
         }
 
-        /* --- MOBILE MENU TOGGLE --- */
-        #menuToggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            cursor: pointer;
-            z-index: 1003;
-            box-shadow: 0 4px 15px var(--shadow-color);
-            transition: background-color 0.2s ease, transform 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #menuToggle:hover {
-            background-color: var(--accent-hover);
-            transform: scale(1.05);
-        }
-        #menuToggle svg {
-            width: 28px;
-            height: 28px;
-            transition: transform 0.3s ease;
-        }
-
         /* --- CONTROLS PANEL --- */
         #controls {
             position: absolute;
@@ -132,6 +103,15 @@
             margin: 0 0 16px 0;
             font-size: 0.9em;
             color: var(--text-secondary);
+        }
+        .controls-header p a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .controls-header p a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
         }
         .header-buttons {
             display: grid;
@@ -332,26 +312,16 @@
                 border-radius: 2px;
             }
             .controls-header:active { cursor: grabbing; }
-            #menuToggle { display: flex; }
-            #menuIconClose { transform: rotate(180deg); }
         }
-        @media (min-width: 769px) {
-            #menuToggle { display: none; }
-        }
+
     </style>
 </head>
 <body>
-    <!-- Mobile menu button -->
-    <button id="menuToggle">
-        <svg id="menuIconOpen" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
-        <svg id="menuIconClose" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
-    </button>
-    
     <!-- Main controls panel -->
     <div id="controls">
         <div class="controls-header">
             <h2>Boids Simulation</h2>
-            <p>A 3D Flocking Algorithm</p>
+            <p>Based on the original <a href="https://dl.acm.org/doi/10.1145/37401.37406" target="_blank" rel="noopener noreferrer">1987 paper</a> by Craig Reynolds.</p>
             <div class="header-buttons">
                 <button id="randomizeBtn">Randomize</button>
                 <button id="resetBtn">Reset</button>
@@ -414,10 +384,10 @@
             <details>
                 <summary><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>Appearance</summary>
                 <div class="details-content">
-                    <div class="control-item"><label>Display Mode</label><div class="single-button"><button id="modeToggle" class="toggle-button active">Dark Mode</button></div></div>
+                    <div class="control-item"><label>Display Mode</label><div class="button-group single-button"><button id="modeToggle" class="toggle-button active">Dark Mode</button></div></div>
                     <div class="control-item"><label>Boid Shape</label><div class="single-button"><select id="boidAppearance"><option value="cones">Cones</option><option value="fish">Fish</option><option value="birds">Birds</option></select></div></div>
                     <div class="control-item"><label>Boundary Type</label><div class="single-button"><select id="boundaryType"><option value="walls">Walls</option><option value="periodic" selected>Periodic</option></select></div></div>
-                    <div class="control-item"><label>Show Boundaries</label><div class="single-button"><button id="showBoundariesToggle" class="toggle-button">Show</button></div></div>
+                    <div class="control-item"><label>Show Boundaries</label><div class="button-group single-button"><button id="showBoundariesToggle" class="toggle-button">Show</button></div></div>
                     <div class="control-item"><label>Render Distance</label><div class="input-group"><input type="range" id="renderDistance" min="400" max="5000" step="10"><input type="number" id="renderDistanceValue" class="slider-value"></div></div>
                 </div>
             </details>
@@ -425,7 +395,7 @@
              <details>
                 <summary><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.09-4-4L2 16.99z"/></svg>Trails</summary>
                 <div class="details-content">
-                    <div class="control-item"><label>Enable Trails</label><div class="single-button"><button id="trailsToggle" class="toggle-button">Enable</button></div></div>
+                    <div class="control-item"><label>Enable Trails</label><div class="button-group single-button"><button id="trailsToggle" class="toggle-button">Enable</button></div></div>
                     <div class="control-item" id="trailLengthContainer" style="display: none;"><label>Trail Length</label><div class="input-group"><input type="range" id="trailLength" min="2" max="50" step="1"><input type="number" id="trailLengthValue" class="slider-value" step="1"></div></div>
                 </div>
             </details>
@@ -990,13 +960,13 @@
             });
 
             // Mobile Menu Handler
-            const menuToggle = document.getElementById('menuToggle');
             const controlsPanel = document.getElementById('controls');
-            const menuIconOpen = document.getElementById('menuIconOpen'), menuIconClose = document.getElementById('menuIconClose');
-            menuToggle.addEventListener('click', () => {
-                const isOpen = controlsPanel.classList.toggle('open');
-                menuIconOpen.style.display = isOpen ? 'none' : 'block';
-                menuIconClose.style.display = isOpen ? 'block' : 'none';
+            const controlsHeader = document.querySelector('.controls-header');
+            controlsHeader.addEventListener('click', () => {
+                // We only want this click behavior on mobile where the header acts as a handle
+                if (window.matchMedia("(max-width: 768px)").matches) {
+                    controlsPanel.classList.toggle('open');
+                }
             });
         }
         
@@ -1147,4 +1117,3 @@
     </script>
 </body>
 </html>
-
