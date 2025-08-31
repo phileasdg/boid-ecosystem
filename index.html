@@ -92,12 +92,16 @@
             padding: 16px 20px;
             border-bottom: 1px solid var(--border-color);
             text-align: center;
+            position: relative;
         }
         
         .controls-header h2 {
             margin: 0 0 4px 0;
             font-size: 1.5em;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .controls-header p {
             margin: 0 0 16px 0;
@@ -128,6 +132,10 @@
         .controls-body {
             padding: 10px;
             flex-grow: 1;
+        }
+        
+        .mobile-chevron {
+            display: none;
         }
 
         /* --- ACCORDION (DETAILS/SUMMARY) --- */
@@ -295,7 +303,7 @@
                 left: 0; right: 0; bottom: 0; top: auto; width: 100%;
                 border-radius: 20px 20px 0 0;
                 border-left: none; border-right: none; border-bottom: none;
-                transform: translateY(calc(100% - 60px));
+                transform: translateY(calc(100% - 88px));
                 max-height: 80vh; z-index: 1000;
                 overflow-y: hidden; /* Prevent scrolling when the panel is collapsed */
             }
@@ -303,19 +311,24 @@
                 transform: translateY(0);
                 overflow-y: auto; /* Re-enable scrolling when the panel is open */
             }
-            .controls-header { cursor: grab; padding-top: 20px; }
-            .controls-header::before {
-                content: '';
-                position: absolute;
-                top: 8px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 40px;
-                height: 4px;
-                background-color: var(--border-color);
-                border-radius: 2px;
+            .controls-header {
+                cursor: grab;
             }
             .controls-header:active { cursor: grabbing; }
+            
+            .mobile-chevron {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                stroke: var(--text-secondary);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                vertical-align: middle;
+                margin-left: 8px;
+            }
+
+            #controls.open .mobile-chevron {
+                transform: rotate(180deg);
+            }
         }
 
     </style>
@@ -324,7 +337,7 @@
     <!-- Main controls panel -->
     <div id="controls">
         <div class="controls-header">
-            <h2>Boids Simulation</h2>
+            <h2>Boids Simulation <svg class="mobile-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg></h2>
             <p>Based on the original <a href="https://dl.acm.org/doi/10.1145/37401.37406" target="_blank" rel="noopener noreferrer">1987 paper</a> by Craig Reynolds.</p>
             <div class="header-buttons">
                 <button id="randomizeBtn">Randomize</button>
